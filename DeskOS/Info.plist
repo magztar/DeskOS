@@ -14,5 +14,35 @@
 	</array>
 	<key>NSPrivacyTracking</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>DeskOS behöver åtkomst till kameran för att kunna ta foton och videor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>DeskOS behöver åtkomst till mikrofonen för att kunna spela in ljud.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>DeskOS behöver åtkomst till dina foton för att kunna visa och dela bilder.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>DeskOS behöver åtkomst för att kunna spara foton till ditt fotoalbum.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>DeskOS behöver åtkomst till din plats för location-baserade funktioner.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>DeskOS behöver åtkomst till dina kontakter för mail och kommunikation.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>DeskOS behöver åtkomst till din kalender för att kunna hantera händelser.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>DeskOS behöver åtkomst till påminnelser för att kunna hantera uppgifter.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>DeskOS behöver åtkomst till ditt musikbibliotek.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>DeskOS behöver åtkomst till taligenkänning för röstkommandon.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>DeskOS behöver åtkomst till Bluetooth för att ansluta till enheter.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>DeskOS behöver åtkomst till Bluetooth-enheter.</string>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>
