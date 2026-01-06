@@ -182,8 +182,9 @@ struct ContentView: View {
                                 canvasSize: geo.size,
                                 onClose: { store.close(window.id) },
                                 onFocus: { store.focus(window.id) },
-                                onDragEnd: {
+                                onDragEnd: { dragOffset in
                                     withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86, blendDuration: 0.06)) {
+                                        store.updateOffset(window.id, to: CGSize(width: window.offset.width + dragOffset.width, height: window.offset.height + dragOffset.height))
                                         store.endDrag(window.id, in: geo.size)
                                     }
                                 },
@@ -254,7 +255,7 @@ struct DesktopWindow: View {
     let canvasSize: CGSize
     let onClose: () -> Void
     let onFocus: () -> Void
-    let onDragEnd: () -> Void
+    let onDragEnd: (CGSize) -> Void
     let onSnap: (SnapPosition) -> Void
 
     @State private var dragOffset: CGSize = .zero
@@ -418,10 +419,8 @@ struct DesktopWindow: View {
                 dragOffset = value.translation
             }
             .onEnded { _ in
-                window.offset.width += dragOffset.width
-                window.offset.height += dragOffset.height
+                onDragEnd(dragOffset)
                 dragOffset = .zero
-                onDragEnd()
             }
     }
 
