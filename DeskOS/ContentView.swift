@@ -149,8 +149,6 @@ final class DesktopStore: ObservableObject {
     }
 
     private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
-        let maxX = max(0, canvas.width - size.width)
-        let maxY = max(0, canvas.height - size.height - dockHeight)
         // Allow more freedom so fönster kan flyttas över hela ytan, men se till att en liten del alltid är synlig.
         let minX = -size.width * 0.6
         let maxX = canvas.width - 60
@@ -184,7 +182,8 @@ struct ContentView: View {
                                 canvasSize: geo.size,
                                 onClose: { store.close(window.id) },
                                 onFocus: { store.focus(window.id) },
-                                onDragEnd: {
+                                onDragEnd: { dragOffset in
+                                    store.updateOffset(window.id, to: CGSize(width: window.offset.width + dragOffset.width, height: window.offset.height + dragOffset.height))
                                     withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86, blendDuration: 0.06)) {
                                         store.endDrag(window.id, in: geo.size)
                                     }
@@ -254,7 +253,7 @@ struct DesktopWindow: View {
     let canvasSize: CGSize
     let onClose: () -> Void
     let onFocus: () -> Void
-    let onDragEnd: () -> Void
+    let onDragEnd: (CGSize) -> Void
     let onSnap: (SnapPosition) -> Void
 
     @State private var dragOffset: CGSize = .zero
@@ -418,12 +417,9 @@ struct DesktopWindow: View {
                 dragOffset = value.translation
             }
             .onEnded { _ in
-                withAnimation(.interactiveSpring(response: 0.16, dampingFraction: 0.9, blendDuration: 0.08)) {
-                    window.offset.width += dragOffset.width
-                    window.offset.height += dragOffset.height
-                    dragOffset = .zero
-                    onDragEnd()
-                }
+                let finalOffset = dragOffset
+                dragOffset = .zero
+                onDragEnd(finalOffset)
             }
     }
 
