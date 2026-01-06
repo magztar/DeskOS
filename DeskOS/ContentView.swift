@@ -267,20 +267,23 @@ struct DesktopWindow: View {
         .onTapGesture(perform: onFocus)
     }
 
+    @ViewBuilder
     private var content: some View {
         switch window.module.id {
         case "notes":
-            notesApp
+            AnyView(notesApp)
         case "browser":
-            browserApp
+            AnyView(browserApp)
         case "files":
-            filesApp
+            AnyView(filesApp)
         case "chat":
-            chatApp
+            AnyView(chatApp)
         default:
-            Text("App coming soon")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(secondarySurfaceColor)
+            AnyView(
+                Text("App coming soon")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(secondarySurfaceColor)
+            )
         }
     }
 
