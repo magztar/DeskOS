@@ -65,9 +65,7 @@ final class DesktopStore: ObservableObject {
         if let offset {
             startOffset = offset
         } else {
-            let x = max(16, canvas.width * 0.5 - defaultSize.width * 0.5)
-            let y = max(16, canvas.height * 0.2)
-            startOffset = CGSize(width: x, height: y)
+            startOffset = centeredOffset(for: defaultSize, in: canvas)
         }
 
         let window = WindowState(
@@ -110,6 +108,8 @@ final class DesktopStore: ObservableObject {
         let edgeThreshold = canvas.width * 0.2
         let rightEdge = window.offset.width + window.size.width
 
+        windows[idx].offset = clampedOffset(for: window.size, proposed: window.offset, in: canvas)
+
         if window.offset.width < edgeThreshold {
             snap(id, to: .left, in: canvas)
         } else if rightEdge > canvas.width - edgeThreshold {
@@ -138,7 +138,22 @@ final class DesktopStore: ObservableObject {
             windows[idx].size = defaultSize
             windows[idx].snap = .none
         }
+        windows[idx].offset = clampedOffset(for: windows[idx].size, proposed: windows[idx].offset, in: canvas)
         focus(id)
+    }
+
+    private func centeredOffset(for size: CGSize, in canvas: CGSize) -> CGSize {
+        let x = max(12, (canvas.width - size.width) * 0.5)
+        let y = max(12, (canvas.height - size.height - dockHeight) * 0.35)
+        return CGSize(width: x, height: y)
+    }
+
+    private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
+        let maxX = max(0, canvas.width - size.width)
+        let maxY = max(0, canvas.height - size.height - dockHeight)
+        let clampedX = proposed.width.clamped(to: 0...maxX)
+        let clampedY = proposed.height.clamped(to: 0...maxY)
+        return CGSize(width: clampedX, height: clampedY)
     }
 }
 
@@ -393,13 +408,21 @@ struct DesktopWindow: View {
                 dragOffset = value.translation
             }
             .onEnded { _ in
-                window.offset.width += dragOffset.width
-                window.offset.height += dragOffset.height
-                dragOffset = .zero
-                onDragEnd()
+                withAnimation(.interactiveSpring(response: 0.16, dampingFraction: 0.9, blendDuration: 0.08)) {
+                    window.offset.width += dragOffset.width
+                    window.offset.height += dragOffset.height
+                    dragOffset = .zero
+                    onDragEnd()
+                }
             }
     }
 
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
+}
             private var surfaceColor: Color {
         #if os(macOS)
             Color(nsColor: .windowBackgroundColor)
