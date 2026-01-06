@@ -6,6 +6,12 @@
 //
 
 import SwiftUI
+import Combine
+#if os(iOS) || os(tvOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 // Simple representation of an app/module in DeskOS.
 struct DeskModule: Identifiable, Hashable {
@@ -247,7 +253,7 @@ struct DesktopWindow: View {
 
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemBackground).opacity(0.9))
+                .background(surfaceColor.opacity(0.9))
         }
         .frame(width: window.size.width, height: window.size.height)
         .background(.ultraThinMaterial)
@@ -274,7 +280,7 @@ struct DesktopWindow: View {
         default:
             Text("App coming soon")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.secondarySystemBackground))
+                .background(secondarySurfaceColor)
         }
     }
 
@@ -374,6 +380,22 @@ struct DesktopWindow: View {
                 onDragEnd()
             }
     }
+
+            private var surfaceColor: Color {
+        #if os(macOS)
+            Color(nsColor: .windowBackgroundColor)
+        #else
+            Color(uiColor: .systemBackground)
+        #endif
+            }
+
+            private var secondarySurfaceColor: Color {
+        #if os(macOS)
+            Color(nsColor: .underPageBackgroundColor)
+        #else
+            Color(uiColor: .secondarySystemBackground)
+        #endif
+            }
 }
 
 struct DockView: View {
