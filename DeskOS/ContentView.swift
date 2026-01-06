@@ -418,12 +418,10 @@ struct DesktopWindow: View {
                 dragOffset = value.translation
             }
             .onEnded { _ in
-                withAnimation(.interactiveSpring(response: 0.16, dampingFraction: 0.9, blendDuration: 0.08)) {
-                    window.offset.width += dragOffset.width
-                    window.offset.height += dragOffset.height
-                    dragOffset = .zero
-                    onDragEnd()
-                }
+                window.offset.width += dragOffset.width
+                window.offset.height += dragOffset.height
+                dragOffset = .zero
+                onDragEnd()
             }
     }
 
