@@ -2,47 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>DeskOS needs access to local networks to load web pages.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_services._dns-sd._udp</string>
-	</array>
-	<key>NSPrivacyTracking</key>
-	<false/>
-	<key>NSCameraUsageDescription</key>
-	<string>DeskOS needs access to camera to take photos and videos.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>DeskOS needs access to microphone to record audio.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>DeskOS needs access to your photos to display and share images.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>DeskOS needs access to save photos to your photo library.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>DeskOS needs access to your location for location-based features.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>DeskOS needs access to your contacts for mail and communication.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>DeskOS needs access to your calendar to manage events.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>DeskOS needs access to reminders to manage tasks.</string>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>DeskOS needs access to your music library.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>DeskOS needs access to speech recognition for voice commands.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>DeskOS needs access to Bluetooth to connect to devices.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>DeskOS needs access to Bluetooth devices.</string>
-	<key>UISupportsDocumentBrowser</key>
-	<true/>
-	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
+
+    <!-- Required privacy usage descriptions (minimal, valid set) -->
+    <key>NSCameraUsageDescription</key>
+    <string>Camera access is required for capturing photos and video.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone access is required for audio recording.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Photo library access is required to pick and show images.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Photo library write access is required to save images.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Location is used to improve browsing and app features.</string>
+
+    <!-- File access helpers -->
+    <key>UISupportsDocumentBrowser</key>
+    <true/>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 </dict>
 </plist>
