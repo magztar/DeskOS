@@ -151,9 +151,13 @@ final class DesktopStore: ObservableObject {
     private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
         let maxX = max(0, canvas.width - size.width)
         let maxY = max(0, canvas.height - size.height - dockHeight)
-        let clampedX = proposed.width.clamped(to: 0...maxX)
-        let clampedY = proposed.height.clamped(to: 0...maxY)
+        let clampedX = clamp(proposed.width, min: 0, max: maxX)
+        let clampedY = clamp(proposed.height, min: 0, max: maxY)
         return CGSize(width: clampedX, height: clampedY)
+    }
+
+    private func clamp(_ value: CGFloat, min: CGFloat, max: CGFloat) -> CGFloat {
+        Swift.min(Swift.max(value, min), max)
     }
 }
 
@@ -193,7 +197,7 @@ struct ContentView: View {
                     canvasSize = geo.size
                     store.bootIfNeeded(canvas: geo.size)
                 }
-                .onChange(of: geo.size) { newSize in
+                .onChange(of: geo.size) { _, newSize in
                     canvasSize = newSize
                 }
 
@@ -417,27 +421,21 @@ struct DesktopWindow: View {
             }
     }
 
-
-private extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
-        min(max(self, range.lowerBound), range.upperBound)
+    private var surfaceColor: Color {
+        #if os(macOS)
+        Color(nsColor: .windowBackgroundColor)
+        #else
+        Color(uiColor: .systemBackground)
+        #endif
     }
-}
-            private var surfaceColor: Color {
-        #if os(macOS)
-            Color(nsColor: .windowBackgroundColor)
-        #else
-            Color(uiColor: .systemBackground)
-        #endif
-            }
 
-            private var secondarySurfaceColor: Color {
+    private var secondarySurfaceColor: Color {
         #if os(macOS)
-            Color(nsColor: .underPageBackgroundColor)
+        Color(nsColor: .underPageBackgroundColor)
         #else
-            Color(uiColor: .secondarySystemBackground)
+        Color(uiColor: .secondarySystemBackground)
         #endif
-            }
+    }
 }
 
 struct DockView: View {
