@@ -174,7 +174,7 @@ struct ContentView: View {
             ZStack(alignment: .bottom) {
                 desktopBackground
 
-                ZStack {
+                ZStack(alignment: .topLeading) {
                     ForEach(store.windows.sorted(by: { $0.zIndex < $1.zIndex })) { window in
                         if let binding = binding(for: window.id) {
                             DesktopWindow(
@@ -197,6 +197,8 @@ struct ContentView: View {
                         }
                     }
                 }
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+                .clipped()
                 .onAppear {
                     canvasSize = geo.size
                     store.bootIfNeeded(canvas: geo.size)
