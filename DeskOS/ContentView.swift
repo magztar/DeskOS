@@ -173,7 +173,7 @@ struct ContentView: View {
                     canvasSize = geo.size
                     store.bootIfNeeded(canvas: geo.size)
                 }
-                .onChange(of: geo.size) { _, newSize in
+                .onChange(of: geo.size) { newSize in
                     canvasSize = newSize
                 }
 
