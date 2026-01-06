@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import WebKit
 #if os(iOS) || os(tvOS)
 import UIKit
 #elseif os(macOS)
@@ -164,6 +165,38 @@ final class DesktopStore: ObservableObject {
         Swift.min(Swift.max(value, min), max)
     }
 }
+
+#if os(macOS)
+struct WebViewRepresentable: NSViewRepresentable {
+    let url: URL
+    
+    func makeNSView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        let request = URLRequest(url: url)
+        webView.load(request)
+        return webView
+    }
+    
+    func updateNSView(_ nsView: WKWebView, context: Context) {
+        // Update if needed
+    }
+}
+#else
+struct WebViewRepresentable: UIViewRepresentable {
+    let url: URL
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        let request = URLRequest(url: url)
+        webView.load(request)
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        // Update if needed
+    }
+}
+#endif
 
 struct ContentView: View {
     @StateObject private var store = DesktopStore()
@@ -342,48 +375,107 @@ struct DesktopWindow: View {
     }
 
     private var browserApp: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "globe")
-                Text("Browser")
-                    .font(.headline)
+        VStack(spacing: 0) {
+            // Toolbar
+            HStack(spacing: 8) {
+                Button(action: {}) {
+                    Image(systemName: "chevron.left")
+                        .foregroundStyle(.secondary)
+                }
+                Button(action: {}) {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
+                Button(action: {}) {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(.secondary)
+                }
+                
                 Spacer()
+                
                 Capsule()
                     .fill(Color.blue.opacity(0.15))
-                    .frame(width: 80, height: 26)
-                    .overlay(Text("Offline").font(.caption).foregroundStyle(.blue))
-            }
-            
-            // Address bar
-            HStack {
-                Image(systemName: "lock.fill")
-                    .foregroundStyle(.green)
-                    .font(.caption)
-                TextField("Enter URL", text: .constant(""))
-                    .font(.caption)
-                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 80, height: 20)
+                    .overlay(Text("Offline").font(.caption2).foregroundStyle(.blue))
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color.white.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
             
-            // Web view area
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.blue.opacity(0.08))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(
-                    VStack {
-                        Image(systemName: "globe")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.blue.opacity(0.5))
-                        Text("Web view")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
+            // Address bar
+            HStack(spacing: 6) {
+                Image(systemName: "lock.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+                TextField("Enter URL", text: .constant("https://"))
+                    .font(.system(.caption, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+                Image(systemName: "star")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
+            
+            // Tabs
+            HStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "globe")
+                        .font(.caption2)
+                    Text("New Tab")
+                        .font(.caption)
+                    Button(action: {}) {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
                     }
-                )
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                
+                Button(action: {}) {
+                    Image(systemName: "plus")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
+            
+            // Web content
+            if let url = URL(string: "https://www.example.com") {
+                WebViewRepresentable(url: url)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(8)
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.blue.opacity(0.08))
+                    .overlay(
+                        VStack(spacing: 12) {
+                            Image(systemName: "globe")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.blue.opacity(0.5))
+                            VStack(spacing: 4) {
+                                Text("Webbläsare")
+                                    .font(.headline)
+                                Text("WebKit-baserad browser")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    )
+                    .padding(8)
+            }
         }
-        .padding()
     }
 
     private var filesApp: some View {
