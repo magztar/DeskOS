@@ -25,6 +25,7 @@ enum SnapPosition {
     case none
     case left
     case right
+    case maximized
 }
 
 // Window state for a running module.
@@ -129,6 +130,10 @@ final class DesktopStore: ObservableObject {
             windows[idx].offset = CGSize(width: canvas.width * 0.52, height: verticalPadding)
             windows[idx].size = CGSize(width: canvas.width * 0.48 - 12, height: usableHeight)
             windows[idx].snap = .right
+        case .maximized:
+            windows[idx].offset = CGSize(width: 0, height: 0)
+            windows[idx].size = CGSize(width: canvas.width, height: canvas.height - dockHeight - verticalPadding)
+            windows[idx].snap = .maximized
         case .none:
             windows[idx].size = defaultSize
             windows[idx].snap = .none
@@ -242,6 +247,9 @@ struct DesktopWindow: View {
                     }
                     Button(action: { onSnap(.right) }) {
                         Image(systemName: "rectangle.trailinghalf.inset.filled")
+                    }
+                    Button(action: { onSnap(window.snap == .maximized ? .none : .maximized) }) {
+                        Image(systemName: window.snap == .maximized ? "rectangle.compress.vertical" : "arrow.up.left.and.arrow.down.right")
                     }
                     Button(role: .destructive, action: onClose) {
                         Image(systemName: "xmark.circle.fill")
