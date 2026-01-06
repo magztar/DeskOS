@@ -170,18 +170,25 @@ final class DesktopStore: ObservableObject {
 struct WebViewRepresentable: NSViewRepresentable {
     let url: URL
     @ObservedObject var webViewState: WebViewState
+    @Binding var webView: WKWebView?
     
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.navigationDelegate = context.coordinator
+        context.coordinator.webView = webView
+        DispatchQueue.main.async {
+            self.webView = webView
+        }
         let request = URLRequest(url: url)
         webView.load(request)
-        context.coordinator.webView = webView
         return webView
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        // Update if needed
+        if nsView.url != url {
+            let request = URLRequest(url: url)
+            nsView.load(request)
+        }
     }
     
     func makeCoordinator() -> WebViewCoordinator {
@@ -192,18 +199,25 @@ struct WebViewRepresentable: NSViewRepresentable {
 struct WebViewRepresentable: UIViewRepresentable {
     let url: URL
     @ObservedObject var webViewState: WebViewState
+    @Binding var webView: WKWebView?
     
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
         webView.navigationDelegate = context.coordinator
+        context.coordinator.webView = webView
+        DispatchQueue.main.async {
+            self.webView = webView
+        }
         let request = URLRequest(url: url)
         webView.load(request)
-        context.coordinator.webView = webView
         return webView
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // Update if needed
+        if uiView.url != url {
+            let request = URLRequest(url: url)
+            uiView.load(request)
+        }
     }
     
     func makeCoordinator() -> WebViewCoordinator {
@@ -381,7 +395,7 @@ struct BrowserView: View {
             // Web content
             ZStack {
                 if let url = currentURL {
-                    WebViewRepresentable(url: url, webViewState: webViewState)
+                    WebViewRepresentable(url: url, webViewState: webViewState, webView: $webView)
                         .onAppear {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 isOnline = true
