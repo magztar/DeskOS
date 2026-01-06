@@ -242,7 +242,7 @@ class WebViewCoordinator: NSObject, WKNavigationDelegate {
 struct BrowserView: View {
     @StateObject private var webViewState = WebViewState()
     @State private var urlInput: String = "https://www.example.com"
-    @State private var currentURL = URL(string: "https://www.example.com")!
+    @State private var currentURL: URL? = URL(string: "https://www.example.com")
     @State private var webView: WKWebView?
     @State private var tabs: [String] = ["New Tab"]
     @State private var activeTab: Int = 0
