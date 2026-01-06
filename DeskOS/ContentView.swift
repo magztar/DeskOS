@@ -169,34 +169,266 @@ final class DesktopStore: ObservableObject {
 #if os(macOS)
 struct WebViewRepresentable: NSViewRepresentable {
     let url: URL
+    @ObservedObject var webViewState: WebViewState
     
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
         let request = URLRequest(url: url)
         webView.load(request)
+        context.coordinator.webView = webView
         return webView
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
         // Update if needed
     }
+    
+    func makeCoordinator() -> WebViewCoordinator {
+        WebViewCoordinator(webViewState)
+    }
 }
 #else
 struct WebViewRepresentable: UIViewRepresentable {
     let url: URL
+    @ObservedObject var webViewState: WebViewState
     
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
         let request = URLRequest(url: url)
         webView.load(request)
+        context.coordinator.webView = webView
         return webView
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
         // Update if needed
     }
+    
+    func makeCoordinator() -> WebViewCoordinator {
+        WebViewCoordinator(webViewState)
+    }
 }
 #endif
+
+class WebViewState: ObservableObject {
+    @Published var isLoading = false
+    @Published var canGoBack = false
+    @Published var canGoForward = false
+    @Published var currentURL: String = ""
+}
+
+class WebViewCoordinator: NSObject, WKNavigationDelegate {
+    var webView: WKWebView?
+    let webViewState: WebViewState
+    
+    init(_ webViewState: WebViewState) {
+        self.webViewState = webViewState
+    }
+    
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        webViewState.isLoading = true
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webViewState.isLoading = false
+        webViewState.canGoBack = webView.canGoBack
+        webViewState.canGoForward = webView.canGoForward
+        webViewState.currentURL = webView.url?.absoluteString ?? ""
+    }
+}
+
+struct BrowserView: View {
+    @StateObject private var webViewState = WebViewState()
+    @State private var urlInput: String = "https://www.example.com"
+    @State private var currentURL = URL(string: "https://www.example.com")!
+    @State private var webView: WKWebView?
+    @State private var tabs: [String] = ["New Tab"]
+    @State private var activeTab: Int = 0
+    @State private var favorites: [String] = ["apple.com", "google.com", "wikipedia.org"]
+    @State private var isOnline = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Toolbar
+            HStack(spacing: 8) {
+                Button(action: { webView?.goBack() }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundStyle(webViewState.canGoBack ? .primary : .secondary)
+                }
+                .disabled(!webViewState.canGoBack)
+                
+                Button(action: { webView?.goForward() }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(webViewState.canGoForward ? .primary : .secondary)
+                }
+                .disabled(!webViewState.canGoForward)
+                
+                Button(action: { webView?.reload() }) {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                Capsule()
+                    .fill(isOnline ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
+                    .frame(width: 80, height: 20)
+                    .overlay(Text(isOnline ? "Online" : "Offline").font(.caption2).foregroundStyle(isOnline ? .green : .red))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
+            
+            // Address bar
+            HStack(spacing: 6) {
+                Image(systemName: "lock.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+                
+                TextField("Enter URL", text: $urlInput, onCommit: {
+                    navigateTo(urlInput)
+                })
+                .font(.system(.caption, design: .monospaced))
+                .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    navigateTo(urlInput)
+                }
+                
+                Button(action: { toggleFavorite(urlInput) }) {
+                    Image(systemName: favorites.contains(urlInput) ? "star.fill" : "star")
+                        .font(.caption)
+                        .foregroundStyle(favorites.contains(urlInput) ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
+            
+            // Tabs
+            HStack(spacing: 4) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(tabs.indices, id: \.self) { index in
+                            HStack(spacing: 4) {
+                                Image(systemName: "globe")
+                                    .font(.caption2)
+                                Text(tabs[index])
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                Button(action: { closeTab(index) }) {
+                                    Image(systemName: "xmark")
+                                        .font(.caption2)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(index == activeTab ? Color.blue.opacity(0.2) : Color.white.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .onTapGesture {
+                                activeTab = index
+                            }
+                        }
+                    }
+                }
+                
+                Button(action: { newTab() }) {
+                    Image(systemName: "plus")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.white.opacity(0.02))
+            .border(Color.white.opacity(0.1), width: 0.5)
+            
+            // Favorites
+            if !favorites.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(favorites, id: \.self) { fav in
+                            Button(action: { navigateTo(fav) }) {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.yellow)
+                                    Text(fav)
+                                        .font(.caption2)
+                                        .lineLimit(1)
+                                }
+                                .padding(8)
+                                .background(Color.white.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.02))
+                .border(Color.white.opacity(0.1), width: 0.5)
+            }
+            
+            // Web content
+            ZStack {
+                if let url = currentURL {
+                    WebViewRepresentable(url: url, webViewState: webViewState)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isOnline = true
+                            }
+                        }
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(8)
+        }
+    }
+    
+    private func navigateTo(_ urlString: String) {
+        var urlStr = urlString.trimmingCharacters(in: .whitespaces)
+        
+        // Add https if needed
+        if !urlStr.hasPrefix("http://") && !urlStr.hasPrefix("https://") {
+            urlStr = "https://" + urlStr
+        }
+        
+        if let url = URL(string: urlStr) {
+            currentURL = url
+            urlInput = urlStr
+        }
+    }
+    
+    private func toggleFavorite(_ url: String) {
+        if favorites.contains(url) {
+            favorites.removeAll { $0 == url }
+        } else {
+            favorites.append(url)
+        }
+    }
+    
+    private func newTab() {
+        tabs.append("New Tab")
+        activeTab = tabs.count - 1
+        urlInput = ""
+    }
+    
+    private func closeTab(_ index: Int) {
+        tabs.remove(at: index)
+        if activeTab >= tabs.count && activeTab > 0 {
+            activeTab -= 1
+        }
+    }
+}
 
 struct ContentView: View {
     @StateObject private var store = DesktopStore()
@@ -375,107 +607,8 @@ struct DesktopWindow: View {
     }
 
     private var browserApp: some View {
-        VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 8) {
-                Button(action: {}) {
-                    Image(systemName: "chevron.left")
-                        .foregroundStyle(.secondary)
-                }
-                Button(action: {}) {
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.secondary)
-                }
-                Button(action: {}) {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                Capsule()
-                    .fill(Color.blue.opacity(0.15))
-                    .frame(width: 80, height: 20)
-                    .overlay(Text("Offline").font(.caption2).foregroundStyle(.blue))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.02))
-            .border(Color.white.opacity(0.1), width: 0.5)
-            
-            // Address bar
-            HStack(spacing: 6) {
-                Image(systemName: "lock.fill")
-                    .foregroundStyle(.green)
-                    .font(.caption)
-                TextField("Enter URL", text: .constant("https://"))
-                    .font(.system(.caption, design: .monospaced))
-                    .textFieldStyle(.roundedBorder)
-                Image(systemName: "star")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.02))
-            .border(Color.white.opacity(0.1), width: 0.5)
-            
-            // Tabs
-            HStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    Image(systemName: "globe")
-                        .font(.caption2)
-                    Text("New Tab")
-                        .font(.caption)
-                    Button(action: {}) {
-                        Image(systemName: "xmark")
-                            .font(.caption2)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.2))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                
-                Button(action: {}) {
-                    Image(systemName: "plus")
-                        .font(.caption2)
-                }
-                .buttonStyle(.plain)
-                
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.white.opacity(0.02))
-            .border(Color.white.opacity(0.1), width: 0.5)
-            
-            // Web content
-            if let url = URL(string: "https://www.example.com") {
-                WebViewRepresentable(url: url)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(8)
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.08))
-                    .overlay(
-                        VStack(spacing: 12) {
-                            Image(systemName: "globe")
-                                .font(.system(size: 40))
-                                .foregroundStyle(.blue.opacity(0.5))
-                            VStack(spacing: 4) {
-                                Text("Webbläsare")
-                                    .font(.headline)
-                                Text("WebKit-baserad browser")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    )
-                    .padding(8)
-            }
-        }
+        BrowserView()
+    }
     }
 
     private var filesApp: some View {
