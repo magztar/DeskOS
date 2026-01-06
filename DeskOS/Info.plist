@@ -7,7 +7,7 @@
 		<string>remote-notification</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>DeskOS behöver åtkomst till lokala nätverk för att kunna ladda webbsidor.</string>
+	<string>DeskOS needs access to local networks to load web pages.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_services._dns-sd._udp</string>
@@ -15,29 +15,29 @@
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>DeskOS behöver åtkomst till kameran för att kunna ta foton och videor.</string>
+	<string>DeskOS needs access to camera to take photos and videos.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>DeskOS behöver åtkomst till mikrofonen för att kunna spela in ljud.</string>
+	<string>DeskOS needs access to microphone to record audio.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>DeskOS behöver åtkomst till dina foton för att kunna visa och dela bilder.</string>
+	<string>DeskOS needs access to your photos to display and share images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>DeskOS behöver åtkomst för att kunna spara foton till ditt fotoalbum.</string>
+	<string>DeskOS needs access to save photos to your photo library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>DeskOS behöver åtkomst till din plats för location-baserade funktioner.</string>
+	<string>DeskOS needs access to your location for location-based features.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>DeskOS behöver åtkomst till dina kontakter för mail och kommunikation.</string>
+	<string>DeskOS needs access to your contacts for mail and communication.</string>
 	<key>NSCalendarsUsageDescription</key>
-	<string>DeskOS behöver åtkomst till din kalender för att kunna hantera händelser.</string>
+	<string>DeskOS needs access to your calendar to manage events.</string>
 	<key>NSRemindersUsageDescription</key>
-	<string>DeskOS behöver åtkomst till påminnelser för att kunna hantera uppgifter.</string>
+	<string>DeskOS needs access to reminders to manage tasks.</string>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>DeskOS behöver åtkomst till ditt musikbibliotek.</string>
+	<string>DeskOS needs access to your music library.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>DeskOS behöver åtkomst till taligenkänning för röstkommandon.</string>
+	<string>DeskOS needs access to speech recognition for voice commands.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>DeskOS behöver åtkomst till Bluetooth för att ansluta till enheter.</string>
+	<string>DeskOS needs access to Bluetooth to connect to devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>DeskOS behöver åtkomst till Bluetooth-enheter.</string>
+	<string>DeskOS needs access to Bluetooth devices.</string>
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
