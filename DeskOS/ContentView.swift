@@ -6,61 +6,479 @@
 //
 
 import SwiftUI
-import SwiftData
+
+// Simple representation of an app/module in DeskOS.
+struct DeskModule: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let systemImage: String
+    let tint: Color
+}
+
+enum SnapPosition {
+    case none
+    case left
+    case right
+}
+
+// Window state for a running module.
+struct WindowState: Identifiable {
+    let id: UUID
+    let module: DeskModule
+    var offset: CGSize
+    var size: CGSize
+    var zIndex: Double
+    var isFocused: Bool
+    var snap: SnapPosition
+}
+
+final class DesktopStore: ObservableObject {
+    @Published var windows: [WindowState] = []
+    @Published var isLauncherOpen = false
+
+    let modules: [DeskModule] = [
+        DeskModule(id: "notes", name: "Notes", systemImage: "note.text", tint: .yellow),
+        DeskModule(id: "browser", name: "Browser", systemImage: "globe", tint: .blue),
+        DeskModule(id: "files", name: "Files", systemImage: "folder", tint: .cyan),
+        DeskModule(id: "chat", name: "Chat", systemImage: "bubble.left.and.bubble.right", tint: .green)
+    ]
+
+    private var nextZ: Double = 1
+    private let defaultSize = CGSize(width: 420, height: 320)
+    private let dockHeight: CGFloat = 80
+
+    func bootIfNeeded(canvas: CGSize) {
+        guard windows.isEmpty else { return }
+        open(modules[0], in: canvas, offset: CGSize(width: 32, height: 48))
+        open(modules[1], in: canvas, offset: CGSize(width: 96, height: 96))
+    }
+
+    func open(_ module: DeskModule, in canvas: CGSize, offset: CGSize? = nil) {
+        let startOffset: CGSize
+        if let offset {
+            startOffset = offset
+        } else {
+            let x = max(16, canvas.width * 0.5 - defaultSize.width * 0.5)
+            let y = max(16, canvas.height * 0.2)
+            startOffset = CGSize(width: x, height: y)
+        }
+
+        let window = WindowState(
+            id: UUID(),
+            module: module,
+            offset: startOffset,
+            size: defaultSize,
+            zIndex: nextZ,
+            isFocused: true,
+            snap: .none
+        )
+        nextZ += 1
+        focus(window.id)
+        windows.append(window)
+    }
+
+    func close(_ id: UUID) {
+        windows.removeAll { $0.id == id }
+    }
+
+    func focus(_ id: UUID) {
+        for index in windows.indices {
+            windows[index].isFocused = windows[index].id == id
+        }
+        if let idx = windows.firstIndex(where: { $0.id == id }) {
+            windows[idx].zIndex = nextZ
+            nextZ += 1
+        }
+    }
+
+    func updateOffset(_ id: UUID, to offset: CGSize) {
+        guard let idx = windows.firstIndex(where: { $0.id == id }) else { return }
+        windows[idx].offset = offset
+        windows[idx].snap = .none
+    }
+
+    func endDrag(_ id: UUID, in canvas: CGSize) {
+        guard let idx = windows.firstIndex(where: { $0.id == id }) else { return }
+        let window = windows[idx]
+        let edgeThreshold = canvas.width * 0.2
+        let rightEdge = window.offset.width + window.size.width
+
+        if window.offset.width < edgeThreshold {
+            snap(id, to: .left, in: canvas)
+        } else if rightEdge > canvas.width - edgeThreshold {
+            snap(id, to: .right, in: canvas)
+        }
+    }
+
+    func snap(_ id: UUID, to position: SnapPosition, in canvas: CGSize) {
+        guard let idx = windows.firstIndex(where: { $0.id == id }) else { return }
+        let verticalPadding: CGFloat = 16
+        let usableHeight = max(200, canvas.height - dockHeight - verticalPadding * 2)
+        switch position {
+        case .left:
+            windows[idx].offset = CGSize(width: 12, height: verticalPadding)
+            windows[idx].size = CGSize(width: canvas.width * 0.48, height: usableHeight)
+            windows[idx].snap = .left
+        case .right:
+            windows[idx].offset = CGSize(width: canvas.width * 0.52, height: verticalPadding)
+            windows[idx].size = CGSize(width: canvas.width * 0.48 - 12, height: usableHeight)
+            windows[idx].snap = .right
+        case .none:
+            windows[idx].size = defaultSize
+            windows[idx].snap = .none
+        }
+        focus(id)
+    }
+}
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @StateObject private var store = DesktopStore()
+    @State private var canvasSize: CGSize = .zero
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        GeometryReader { geo in
+            ZStack(alignment: .bottom) {
+                desktopBackground
+
+                ZStack {
+                    ForEach(store.windows.sorted(by: { $0.zIndex < $1.zIndex })) { window in
+                        if let binding = binding(for: window.id) {
+                            DesktopWindow(
+                                window: binding,
+                                canvasSize: geo.size,
+                                onClose: { store.close(window.id) },
+                                onFocus: { store.focus(window.id) },
+                                onDragEnd: { store.endDrag(window.id, in: geo.size) },
+                                onSnap: { store.snap(window.id, to: $0, in: geo.size) }
+                            )
+                            .zIndex(window.zIndex)
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                .onAppear {
+                    canvasSize = geo.size
+                    store.bootIfNeeded(canvas: geo.size)
                 }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .onChange(of: geo.size) { _, newSize in
+                    canvasSize = newSize
+                }
+
+                DockView(modules: store.modules) {
+                    store.open($0, in: canvasSize)
+                } launcherTapped: {
+                    withAnimation(.easeInOut) {
+                        store.isLauncherOpen.toggle()
+                    }
+                }
+
+                if store.isLauncherOpen {
+                    LauncherOverlay(modules: store.modules) { module in
+                        store.open(module, in: canvasSize)
+                        withAnimation(.easeInOut) {
+                            store.isLauncherOpen = false
+                        }
+                    } onDismiss: {
+                        withAnimation(.easeInOut) {
+                            store.isLauncherOpen = false
+                        }
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
+            .ignoresSafeArea()
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+    private func binding(for id: UUID) -> Binding<WindowState>? {
+        guard let index = store.windows.firstIndex(where: { $0.id == id }) else { return nil }
+        return $store.windows[index]
+    }
+
+    private var desktopBackground: some View {
+        LinearGradient(
+            colors: [.black.opacity(0.9), Color.blue.opacity(0.35)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay(
+            RadialGradient(colors: [Color.white.opacity(0.12), .clear], center: .center, startRadius: 80, endRadius: 420)
+        )
+    }
+}
+
+struct DesktopWindow: View {
+    @Binding var window: WindowState
+    let canvasSize: CGSize
+    let onClose: () -> Void
+    let onFocus: () -> Void
+    let onDragEnd: () -> Void
+    let onSnap: (SnapPosition) -> Void
+
+    @State private var dragOffset: CGSize = .zero
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Label(window.module.name, systemImage: window.module.systemImage)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                HStack(spacing: 8) {
+                    Button(action: { onSnap(.left) }) {
+                        Image(systemName: "rectangle.leadinghalf.inset.filled")
+                    }
+                    Button(action: { onSnap(.right) }) {
+                        Image(systemName: "rectangle.trailinghalf.inset.filled")
+                    }
+                    Button(role: .destructive, action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                }
+                .buttonStyle(.plain)
+                .symbolVariant(.fill)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) {
+                Divider().offset(y: 18)
+            }
+            .gesture(dragGesture)
+
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemBackground).opacity(0.9))
+        }
+        .frame(width: window.size.width, height: window.size.height)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(window.isFocused ? 0.35 : 0.15), radius: window.isFocused ? 18 : 8, y: 10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(window.isFocused ? Color.accentColor.opacity(0.6) : Color.white.opacity(0.08), lineWidth: window.isFocused ? 2 : 1)
+        )
+        .offset(x: window.offset.width + dragOffset.width, y: window.offset.height + dragOffset.height)
+        .onTapGesture(perform: onFocus)
+    }
+
+    private var content: some View {
+        switch window.module.id {
+        case "notes":
+            notesApp
+        case "browser":
+            browserApp
+        case "files":
+            filesApp
+        case "chat":
+            chatApp
+        default:
+            Text("App coming soon")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.secondarySystemBackground))
         }
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+    private var notesApp: some View {
+        VStack(alignment: .leading) {
+            Text("Notes")
+                .font(.title3.weight(.semibold))
+            Text("Write quick notes or todos. This is a static placeholder for now.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Spacer()
         }
+        .padding()
+    }
+
+    private var browserApp: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "globe")
+                Text("Browser")
+                    .font(.headline)
+                Spacer()
+                Capsule()
+                    .fill(Color.blue.opacity(0.15))
+                    .frame(width: 80, height: 26)
+                    .overlay(Text("Offline").font(.caption).foregroundStyle(.blue))
+            }
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.blue.opacity(0.08))
+                .frame(maxWidth: .infinity)
+                .overlay(
+                    Text("Web view placeholder")
+                        .foregroundStyle(.secondary)
+                )
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var filesApp: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Files")
+                .font(.headline)
+            ForEach(0..<5) { index in
+                HStack {
+                    Image(systemName: "doc")
+                    Text("Document_0\(index).txt")
+                    Spacer()
+                    Text("12 KB")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+                Divider()
+            }
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var chatApp: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Chat")
+                .font(.headline)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    chatBubble(text: "Hej! Detta är en mockad konversation.", isMe: false)
+                    chatBubble(text: "Ser ut som ett DeskOS-fönster!", isMe: true)
+                    chatBubble(text: "Vi kan ersätta detta med riktig data senare.", isMe: false)
+                }
+            }
+            Spacer()
+        }
+        .padding()
+    }
+
+    private func chatBubble(text: String, isMe: Bool) -> some View {
+        HStack {
+            if isMe { Spacer() }
+            Text(text)
+                .padding(10)
+                .background(isMe ? Color.blue.opacity(0.2) : Color.gray.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            if !isMe { Spacer() }
+        }
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                onFocus()
+                dragOffset = value.translation
+            }
+            .onEnded { _ in
+                window.offset.width += dragOffset.width
+                window.offset.height += dragOffset.height
+                dragOffset = .zero
+                onDragEnd()
+            }
+    }
+}
+
+struct DockView: View {
+    let modules: [DeskModule]
+    let onOpen: (DeskModule) -> Void
+    let launcherTapped: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Button(action: launcherTapped) {
+                    Image(systemName: "square.grid.3x3.fill")
+                        .font(.title2)
+                        .padding(12)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
+                ForEach(modules) { module in
+                    Button(action: { onOpen(module) }) {
+                        VStack(spacing: 6) {
+                            Image(systemName: module.systemImage)
+                                .font(.title3)
+                                .foregroundStyle(module.tint)
+                            Text(module.name)
+                                .font(.caption)
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background(.thinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .shadow(color: .black.opacity(0.25), radius: 10, y: 6)
+        }
+        .padding(.bottom, 12)
+    }
+}
+
+struct LauncherOverlay: View {
+    let modules: [DeskModule]
+    let onLaunch: (DeskModule) -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+                .onTapGesture(perform: onDismiss)
+
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Launcher")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
+                    ForEach(modules) { module in
+                        Button(action: { onLaunch(module) }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: module.systemImage)
+                                    .foregroundStyle(module.tint)
+                                    .font(.title2)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(module.name)
+                                        .font(.headline)
+                                    Text("Open in new window")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: 640)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .shadow(color: .black.opacity(0.35), radius: 28, y: 18)
+        }
+        .transition(.opacity.combined(with: .scale))
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
