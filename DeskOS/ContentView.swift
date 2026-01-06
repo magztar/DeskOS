@@ -159,9 +159,9 @@ struct ContentView: View {
                                         store.endDrag(window.id, in: geo.size)
                                     }
                                 },
-                                onSnap: {
+                                onSnap: { position in
                                     withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86, blendDuration: 0.06)) {
-                                        store.snap(window.id, to: $0, in: geo.size)
+                                        store.snap(window.id, to: position, in: geo.size)
                                     }
                                 }
                             )
