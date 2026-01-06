@@ -149,8 +149,6 @@ final class DesktopStore: ObservableObject {
     }
 
     private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
-        let maxX = max(0, canvas.width - size.width)
-        let maxY = max(0, canvas.height - size.height - dockHeight)
         // Allow more freedom so fönster kan flyttas över hela ytan, men se till att en liten del alltid är synlig.
         let minX = -size.width * 0.6
         let maxX = canvas.width - 60
