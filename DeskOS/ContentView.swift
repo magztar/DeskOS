@@ -151,8 +151,14 @@ final class DesktopStore: ObservableObject {
     private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
         let maxX = max(0, canvas.width - size.width)
         let maxY = max(0, canvas.height - size.height - dockHeight)
-        let clampedX = clamp(proposed.width, min: -48, max: maxX)
-        let clampedY = clamp(proposed.height, min: -64, max: maxY) // allow a bit more negative to reach very top/left
+        // Allow more freedom so fönster kan flyttas över hela ytan, men se till att en liten del alltid är synlig.
+        let minX = -size.width * 0.6
+        let maxX = canvas.width - 60
+        let minY = -size.height * 0.6
+        let maxY = canvas.height - dockHeight - 40
+
+        let clampedX = clamp(proposed.width, min: minX, max: maxX)
+        let clampedY = clamp(proposed.height, min: minY, max: maxY)
         return CGSize(width: clampedX, height: clampedY)
     }
 
