@@ -353,14 +353,35 @@ struct DesktopWindow: View {
                     .frame(width: 80, height: 26)
                     .overlay(Text("Offline").font(.caption).foregroundStyle(.blue))
             }
+            
+            // Address bar
+            HStack {
+                Image(systemName: "lock.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+                TextField("Enter URL", text: .constant(""))
+                    .font(.caption)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            // Web view area
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.blue.opacity(0.08))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(
-                    Text("Web view placeholder")
-                        .foregroundStyle(.secondary)
+                    VStack {
+                        Image(systemName: "globe")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.blue.opacity(0.5))
+                        Text("Web view")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
                 )
-            Spacer()
         }
         .padding()
     }
