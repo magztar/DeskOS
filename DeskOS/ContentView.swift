@@ -198,7 +198,7 @@ struct ContentView: View {
                         }
                     }
                 }
-                .frame(width: geo.size.width, height: geo.size.height - 80, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .clipped()
                 .onAppear {
                     canvasSize = geo.size
