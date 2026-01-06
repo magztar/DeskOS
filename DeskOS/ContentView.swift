@@ -119,16 +119,16 @@ final class DesktopStore: ObservableObject {
 
     func snap(_ id: UUID, to position: SnapPosition, in canvas: CGSize) {
         guard let idx = windows.firstIndex(where: { $0.id == id }) else { return }
-        let verticalPadding: CGFloat = 8
+        let verticalPadding: CGFloat = 4
         let usableHeight = max(200, canvas.height - dockHeight - verticalPadding * 2)
         switch position {
         case .left:
-            windows[idx].offset = CGSize(width: 12, height: verticalPadding)
+            windows[idx].offset = CGSize(width: 4, height: verticalPadding)
             windows[idx].size = CGSize(width: canvas.width * 0.48, height: usableHeight)
             windows[idx].snap = .left
         case .right:
             windows[idx].offset = CGSize(width: canvas.width * 0.52, height: verticalPadding)
-            windows[idx].size = CGSize(width: canvas.width * 0.48 - 12, height: usableHeight)
+            windows[idx].size = CGSize(width: canvas.width * 0.48 - 4, height: usableHeight)
             windows[idx].snap = .right
         case .maximized:
             windows[idx].offset = CGSize(width: 0, height: 0)
@@ -143,16 +143,16 @@ final class DesktopStore: ObservableObject {
     }
 
     private func centeredOffset(for size: CGSize, in canvas: CGSize) -> CGSize {
-        let x = max(12, (canvas.width - size.width) * 0.5)
-        let y = max(0, (canvas.height - size.height - dockHeight) * 0.35)
+        let x = max(0, (canvas.width - size.width) * 0.5)
+        let y = max(-12, (canvas.height - size.height - dockHeight) * 0.35)
         return CGSize(width: x, height: y)
     }
 
     private func clampedOffset(for size: CGSize, proposed: CGSize, in canvas: CGSize) -> CGSize {
         let maxX = max(0, canvas.width - size.width)
         let maxY = max(0, canvas.height - size.height - dockHeight)
-        let clampedX = clamp(proposed.width, min: 0, max: maxX)
-        let clampedY = clamp(proposed.height, min: -24, max: maxY) // allow a small negative so toppen kan nås helt
+        let clampedX = clamp(proposed.width, min: -48, max: maxX)
+        let clampedY = clamp(proposed.height, min: -64, max: maxY) // allow a bit more negative to reach very top/left
         return CGSize(width: clampedX, height: clampedY)
     }
 
