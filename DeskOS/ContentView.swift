@@ -154,8 +154,16 @@ struct ContentView: View {
                                 canvasSize: geo.size,
                                 onClose: { store.close(window.id) },
                                 onFocus: { store.focus(window.id) },
-                                onDragEnd: { store.endDrag(window.id, in: geo.size) },
-                                onSnap: { store.snap(window.id, to: $0, in: geo.size) }
+                                onDragEnd: {
+                                    withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86, blendDuration: 0.06)) {
+                                        store.endDrag(window.id, in: geo.size)
+                                    }
+                                },
+                                onSnap: {
+                                    withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86, blendDuration: 0.06)) {
+                                        store.snap(window.id, to: $0, in: geo.size)
+                                    }
+                                }
                             )
                             .zIndex(window.zIndex)
                         }
