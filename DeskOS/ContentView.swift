@@ -609,7 +609,6 @@ struct DesktopWindow: View {
     private var browserApp: some View {
         BrowserView()
     }
-    }
 
     private var filesApp: some View {
         VStack(alignment: .leading, spacing: 10) {
